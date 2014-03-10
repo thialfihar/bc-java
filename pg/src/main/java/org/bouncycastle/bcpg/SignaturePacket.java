@@ -12,7 +12,7 @@ import org.bouncycastle.util.Arrays;
 /**
  * generic signature packet
  */
-public class SignaturePacket 
+public class SignaturePacket
     extends ContainedPacket implements PublicKeyAlgorithmTags
 {
     private int                    version;
@@ -26,17 +26,17 @@ public class SignaturePacket
     private SignatureSubpacket[]   hashedData;
     private SignatureSubpacket[]   unhashedData;
     private byte[]                 signatureEncoding;
-    
-    SignaturePacket(
+
+    public SignaturePacket(
         BCPGInputStream    in)
         throws IOException
     {
         version = in.read();
-        
+
         if (version == 3 || version == 2)
         {
             int    l = in.read();
-            
+
             signatureType = in.read();
             creationTime = (((long)in.read() << 24) | (in.read() << 16) | (in.read() << 8) | in.read()) * 1000;
             keyID |= (long)in.read() << 56;
@@ -55,10 +55,10 @@ public class SignaturePacket
             signatureType = in.read();
             keyAlgorithm = in.read();
             hashAlgorithm = in.read();
-            
+
             int        hashedLength = (in.read() << 8) | in.read();
             byte[]    hashed = new byte[hashedLength];
-            
+
             in.readFully(hashed);
 
             //
@@ -73,9 +73,9 @@ public class SignaturePacket
             {
                 v.addElement(sub);
             }
-            
+
             hashedData = new SignatureSubpacket[v.size()];
-            
+
             for (int i = 0; i != hashedData.length; i++)
             {
                 SignatureSubpacket    p = (SignatureSubpacket)v.elementAt(i);
@@ -87,26 +87,26 @@ public class SignaturePacket
                 {
                     creationTime = ((SignatureCreationTime)p).getTime().getTime();
                 }
-                
+
                 hashedData[i] = p;
             }
-            
+
             int        unhashedLength = (in.read() << 8) | in.read();
             byte[]    unhashed = new byte[unhashedLength];
-            
+
             in.readFully(unhashed);
-            
+
             sIn = new SignatureSubpacketInputStream(
                                      new ByteArrayInputStream(unhashed));
-                                                    
+
             v.removeAllElements();
             while ((sub = sIn.readPacket()) != null)
             {
                 v.addElement(sub);
             }
-            
+
             unhashedData = new SignatureSubpacket[v.size()];
-            
+
             for (int i = 0; i != unhashedData.length; i++)
             {
                 SignatureSubpacket    p = (SignatureSubpacket)v.elementAt(i);
@@ -114,7 +114,7 @@ public class SignaturePacket
                 {
                     keyID = ((IssuerKeyID)p).getKeyID();
                 }
-                
+
                 unhashedData[i] = p;
             }
         }
@@ -122,23 +122,23 @@ public class SignaturePacket
         {
             throw new RuntimeException("unsupported version: " + version);
         }
-        
+
         fingerPrint = new byte[2];
         in.readFully(fingerPrint);
-        
+
         switch (keyAlgorithm)
         {
         case RSA_GENERAL:
         case RSA_SIGN:
             MPInteger    v = new MPInteger(in);
-                
+
             signature = new MPInteger[1];
             signature[0] = v;
             break;
         case DSA:
             MPInteger    r = new MPInteger(in);
             MPInteger    s = new MPInteger(in);
-                
+
             signature = new MPInteger[2];
             signature[0] = r;
             signature[1] = s;
@@ -148,7 +148,7 @@ public class SignaturePacket
             MPInteger       p = new MPInteger(in);
             MPInteger       g = new MPInteger(in);
             MPInteger       y = new MPInteger(in);
-            
+
             signature = new MPInteger[3];
             signature[0] = p;
             signature[1] = g;
@@ -180,10 +180,10 @@ public class SignaturePacket
             }
         }
     }
-    
+
     /**
      * Generate a version 4 signature packet.
-     * 
+     *
      * @param signatureType
      * @param keyAlgorithm
      * @param hashAlgorithm
@@ -204,10 +204,10 @@ public class SignaturePacket
     {
         this(4, signatureType, keyID, keyAlgorithm, hashAlgorithm, hashedData, unhashedData, fingerPrint, signature);
     }
-    
+
     /**
      * Generate a version 2/3 signature packet.
-     * 
+     *
      * @param signatureType
      * @param keyAlgorithm
      * @param hashAlgorithm
@@ -225,10 +225,10 @@ public class SignaturePacket
         MPInteger[]             signature)
     {
         this(version, signatureType, keyID, keyAlgorithm, hashAlgorithm, null, null, fingerPrint, signature);
-        
+
         this.creationTime = creationTime;
     }
-    
+
     public SignaturePacket(
         int                     version,
         int                     signatureType,
@@ -255,7 +255,7 @@ public class SignaturePacket
             setCreationTime();
         }
     }
-    
+
     /**
      * get the version number
      */
@@ -263,7 +263,7 @@ public class SignaturePacket
     {
         return version;
     }
-    
+
     /**
      * return the signature type.
      */
@@ -271,7 +271,7 @@ public class SignaturePacket
     {
         return signatureType;
     }
-    
+
     /**
      * return the keyID
      * @return the keyID that created the signature.
@@ -280,23 +280,23 @@ public class SignaturePacket
     {
         return keyID;
     }
-    
+
     /**
      * return the signature trailer that must be included with the data
      * to reconstruct the signature
-     * 
+     *
      * @return byte[]
      */
     public byte[] getSignatureTrailer()
     {
         byte[]    trailer = null;
-        
+
         if (version == 3 || version == 2)
         {
             trailer = new byte[5];
-            
+
             long    time = creationTime / 1000;
-            
+
             trailer[0] = (byte)signatureType;
             trailer[1] = (byte)(time >> 24);
             trailer[2] = (byte)(time >> 16);
@@ -306,30 +306,30 @@ public class SignaturePacket
         else
         {
             ByteArrayOutputStream    sOut = new ByteArrayOutputStream();
-        
+
             try
             {
                 sOut.write((byte)this.getVersion());
                 sOut.write((byte)this.getSignatureType());
                 sOut.write((byte)this.getKeyAlgorithm());
                 sOut.write((byte)this.getHashAlgorithm());
-            
+
                 ByteArrayOutputStream    hOut = new ByteArrayOutputStream();
                 SignatureSubpacket[]     hashed = this.getHashedSubPackets();
-            
+
                 for (int i = 0; i != hashed.length; i++)
                 {
                     hashed[i].encode(hOut);
                 }
-                
+
                 byte[]                   data = hOut.toByteArray();
-            
+
                 sOut.write((byte)(data.length >> 8));
                 sOut.write((byte)data.length);
                 sOut.write(data);
-            
+
                 byte[]    hData = sOut.toByteArray();
-            
+
                 sOut.write((byte)this.getVersion());
                 sOut.write((byte)0xff);
                 sOut.write((byte)(hData.length>> 24));
@@ -341,13 +341,13 @@ public class SignaturePacket
             {
                 throw new RuntimeException("exception generating trailer: " + e);
             }
-                
+
             trailer = sOut.toByteArray();
         }
-        
+
         return trailer;
     }
-    
+
     /**
      * return the encryption algorithm tag
      */
@@ -355,7 +355,7 @@ public class SignaturePacket
     {
         return keyAlgorithm;
     }
-    
+
     /**
      * return the hashAlgorithm tag
      */
@@ -363,7 +363,7 @@ public class SignaturePacket
     {
         return hashAlgorithm;
     }
-    
+
     /**
      * return the signature as a set of integers - note this is normalised to be the
      * ASN.1 encoding of what appears in the signature packet.
@@ -406,37 +406,37 @@ public class SignaturePacket
     {
         return hashedData;
     }
-    
+
     public SignatureSubpacket[] getUnhashedSubPackets()
     {
         return unhashedData;
     }
-    
+
     /**
      * Return the creation time of the signature in milli-seconds.
-     * 
+     *
      * @return the creation time in millis
      */
     public long getCreationTime()
     {
         return creationTime;
     }
-    
+
     public void encode(
         BCPGOutputStream    out)
         throws IOException
     {
         ByteArrayOutputStream    bOut = new ByteArrayOutputStream();
         BCPGOutputStream         pOut = new BCPGOutputStream(bOut);
-        
+
         pOut.write(version);
-        
+
         if (version == 3 || version == 2)
         {
             pOut.write(5); // the length of the next block
-            
+
             long    time = creationTime / 1000;
-            
+
             pOut.write(signatureType);
             pOut.write((byte)(time >> 24));
             pOut.write((byte)(time >> 16));
@@ -451,7 +451,7 @@ public class SignaturePacket
             pOut.write((byte)(keyID >> 16));
             pOut.write((byte)(keyID >> 8));
             pOut.write((byte)(keyID));
-            
+
             pOut.write(keyAlgorithm);
             pOut.write(hashAlgorithm);
         }
@@ -460,29 +460,29 @@ public class SignaturePacket
             pOut.write(signatureType);
             pOut.write(keyAlgorithm);
             pOut.write(hashAlgorithm);
-            
+
             ByteArrayOutputStream    sOut = new ByteArrayOutputStream();
-            
+
             for (int i = 0; i != hashedData.length; i++)
             {
                 hashedData[i].encode(sOut);
             }
-            
+
             byte[]                   data = sOut.toByteArray();
-    
+
             pOut.write(data.length >> 8);
             pOut.write(data.length);
             pOut.write(data);
-            
+
             sOut.reset();
-            
+
             for (int i = 0; i != unhashedData.length; i++)
             {
                 unhashedData[i].encode(sOut);
             }
-            
+
             data = sOut.toByteArray();
-      
+
             pOut.write(data.length >> 8);
             pOut.write(data.length);
             pOut.write(data);
@@ -491,7 +491,7 @@ public class SignaturePacket
         {
             throw new IOException("unknown version: " + version);
         }
-        
+
         pOut.write(fingerPrint);
 
         if (signature != null)

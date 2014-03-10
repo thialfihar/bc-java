@@ -42,7 +42,7 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
  * general class to handle a PGP secret key object.
  */
 public class PGPSecretKey
-{    
+{
     SecretKeyPacket secret;
     PGPPublicKey    pub;
 
@@ -53,8 +53,8 @@ public class PGPSecretKey
         this.secret = secret;
         this.pub = pub;
     }
-    
-    PGPSecretKey(
+
+    public PGPSecretKey(
         PGPPrivateKey   privKey,
         PGPPublicKey    pubKey,
         PGPDigestCalculator checksumCalculator,
@@ -63,8 +63,8 @@ public class PGPSecretKey
     {
         this(privKey, pubKey, checksumCalculator, false, keyEncryptor);
     }
-    
-    PGPSecretKey(
+
+    public PGPSecretKey(
         PGPPrivateKey   privKey,
         PGPPublicKey    pubKey,
         PGPDigestCalculator checksumCalculator,
@@ -80,9 +80,9 @@ public class PGPSecretKey
         {
             ByteArrayOutputStream   bOut = new ByteArrayOutputStream();
             BCPGOutputStream        pOut = new BCPGOutputStream(bOut);
-            
+
             pOut.writeObject(secKey);
-            
+
             byte[]    keyData = bOut.toByteArray();
 
             pOut.write(checksum(checksumCalculator, keyData, keyData.length));
@@ -370,7 +370,7 @@ public class PGPSecretKey
         return ((algorithm == PGPPublicKey.RSA_GENERAL) || (algorithm == PGPPublicKey.RSA_SIGN)
                     || (algorithm == PGPPublicKey.DSA) || (algorithm == PGPPublicKey.ECDSA) || (algorithm == PGPPublicKey.ELGAMAL_GENERAL));
     }
-    
+
     /**
      * Return true if this is a master key.
      * @return true if a master key.
@@ -404,37 +404,37 @@ public class PGPSecretKey
 
     /**
      * Return the keyID of the public key associated with this key.
-     * 
+     *
      * @return the keyID associated with this key.
      */
     public long getKeyID()
     {
         return pub.getKeyID();
     }
-    
+
     /**
      * Return the public key associated with this key.
-     * 
+     *
      * @return the public key for this key.
      */
     public PGPPublicKey getPublicKey()
     {
         return pub;
     }
-    
+
     /**
      * Return any userIDs associated with the key.
-     * 
+     *
      * @return an iterator of Strings.
      */
     public Iterator getUserIDs()
     {
         return pub.getUserIDs();
     }
-    
+
     /**
      * Return any user attribute vectors associated with the key.
-     * 
+     *
      * @return an iterator of Strings.
      */
     public Iterator getUserAttributes()
@@ -544,7 +544,7 @@ public class PGPSecretKey
 
     /**
      * Extract a PGPPrivate key from the SecretKey's encrypted contents.
-     * 
+     *
      * @param passPhrase
      * @param provider
      * @return PGPPrivateKey
@@ -631,7 +631,7 @@ public class PGPSecretKey
             throw new PGPException("Exception constructing key", e);
         }
     }
-    
+
     private static byte[] checksum(PGPDigestCalculator digCalc, byte[] bytes, int length)
         throws PGPException
     {
@@ -654,12 +654,12 @@ public class PGPSecretKey
         else
         {
             int       checksum = 0;
-        
+
             for (int i = 0; i != length; i++)
             {
                 checksum += bytes[i] & 0xff;
             }
-        
+
             byte[] check = new byte[2];
 
             check[0] = (byte)(checksum >> 8);
@@ -668,23 +668,23 @@ public class PGPSecretKey
             return check;
         }
     }
-    
-    public byte[] getEncoded() 
+
+    public byte[] getEncoded()
         throws IOException
     {
         ByteArrayOutputStream    bOut = new ByteArrayOutputStream();
-        
+
         this.encode(bOut);
-        
+
         return bOut.toByteArray();
     }
-    
+
     public void encode(
-        OutputStream    outStream) 
+        OutputStream    outStream)
         throws IOException
     {
         BCPGOutputStream    out;
-        
+
         if (outStream instanceof BCPGOutputStream)
         {
             out = (BCPGOutputStream)outStream;
@@ -699,20 +699,20 @@ public class PGPSecretKey
         {
             out.writePacket(pub.trustPk);
         }
-        
+
         if (pub.subSigs == null)        // is not a sub key
         {
             for (int i = 0; i != pub.keySigs.size(); i++)
             {
                 ((PGPSignature)pub.keySigs.get(i)).encode(out);
             }
-            
+
             for (int i = 0; i != pub.ids.size(); i++)
             {
                 if (pub.ids.get(i) instanceof String)
                 {
                     String    id = (String)pub.ids.get(i);
-                    
+
                     out.writePacket(new UserIDPacket(id));
                 }
                 else
@@ -721,14 +721,14 @@ public class PGPSecretKey
 
                     out.writePacket(new UserAttributePacket(v.toSubpacketArray()));
                 }
-                
+
                 if (pub.idTrusts.get(i) != null)
                 {
                     out.writePacket((ContainedPacket)pub.idTrusts.get(i));
                 }
-                
+
                 List         sigs = (ArrayList)pub.idSigs.get(i);
-                
+
                 for (int j = 0; j != sigs.size(); j++)
                 {
                     ((PGPSignature)sigs.get(j)).encode(out);
@@ -736,7 +736,7 @@ public class PGPSecretKey
             }
         }
         else
-        {        
+        {
             for (int j = 0; j != pub.subSigs.size(); j++)
             {
                 ((PGPSignature)pub.subSigs.get(j)).encode(out);

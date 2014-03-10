@@ -1,9 +1,13 @@
 package org.bouncycastle.openpgp;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.bouncycastle.bcpg.BCPGInputStream;
+import org.bouncycastle.bcpg.SignaturePacket;
 import org.bouncycastle.bcpg.SignatureSubpacket;
 import org.bouncycastle.bcpg.SignatureSubpacketTags;
 import org.bouncycastle.bcpg.sig.Features;
@@ -16,6 +20,7 @@ import org.bouncycastle.bcpg.sig.PrimaryUserID;
 import org.bouncycastle.bcpg.sig.SignatureCreationTime;
 import org.bouncycastle.bcpg.sig.SignatureExpirationTime;
 import org.bouncycastle.bcpg.sig.SignerUserID;
+import org.bouncycastle.openpgp.PGPException;
 
 /**
  * Container for a list of signature subpackets.
@@ -23,13 +28,13 @@ import org.bouncycastle.bcpg.sig.SignerUserID;
 public class PGPSignatureSubpacketVector
 {
     SignatureSubpacket[]    packets;
-    
+
     PGPSignatureSubpacketVector(
         SignatureSubpacket[]    packets)
     {
         this.packets = packets;
     }
-    
+
     public SignatureSubpacket getSubpacket(
         int    type)
     {
@@ -40,7 +45,7 @@ public class PGPSignatureSubpacketVector
                 return packets[i];
             }
         }
-        
+
         return null;
     }
 
@@ -89,123 +94,144 @@ public class PGPSignatureSubpacketVector
         return vals;
     }
 
+    public PGPSignatureList getEmbeddedSignatures() throws IOException, PGPException
+    {
+        SignatureSubpacket[] sigs = getSubpackets(SignatureSubpacketTags.EMBEDDED_SIGNATURE);
+        ArrayList l = new ArrayList();
+        for (int i = 0; i < sigs.length; ++i) {
+            byte[] data = sigs[i].getData();
+            PGPSignature tmpSig = null;
+            BCPGInputStream in = new BCPGInputStream(new ByteArrayInputStream(data));
+            try {
+                tmpSig = new PGPSignature(new SignaturePacket(in));
+            } catch (IOException e) {
+                tmpSig = null;
+            } catch (PGPException e) {
+                tmpSig = null;
+            }
+            if (tmpSig != null)
+                l.add(tmpSig);
+        }
+        return new PGPSignatureList((PGPSignature[]) l.toArray(new PGPSignature[l.size()]));
+    }
+
     public long getIssuerKeyID()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.ISSUER_KEY_ID);
-        
+
         if (p == null)
         {
             return 0;
         }
-        
+
         return ((IssuerKeyID)p).getKeyID();
     }
-    
+
     public Date getSignatureCreationTime()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.CREATION_TIME);
-        
+
         if (p == null)
         {
             return null;
         }
-        
+
         return ((SignatureCreationTime)p).getTime();
     }
-    
+
     /**
      * Return the number of seconds a signature is valid for after its creation date. A value of zero means
      * the signature never expires.
-     * 
+     *
      * @return seconds a signature is valid for.
      */
     public long getSignatureExpirationTime()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.EXPIRE_TIME);
-        
+
         if (p == null)
         {
             return 0;
         }
-        
+
         return ((SignatureExpirationTime)p).getTime();
     }
-    
+
     /**
      * Return the number of seconds a key is valid for after its creation date. A value of zero means
      * the key never expires.
-     * 
+     *
      * @return seconds a key is valid for.
      */
     public long getKeyExpirationTime()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.KEY_EXPIRE_TIME);
-        
+
         if (p == null)
         {
             return 0;
         }
-        
+
         return ((KeyExpirationTime)p).getTime();
     }
-    
+
     public int[] getPreferredHashAlgorithms()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.PREFERRED_HASH_ALGS);
-        
+
         if (p == null)
         {
             return null;
         }
-                    
+
         return ((PreferredAlgorithms)p).getPreferences();
     }
-    
+
     public int[] getPreferredSymmetricAlgorithms()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.PREFERRED_SYM_ALGS);
-        
+
         if (p == null)
         {
             return null;
         }
-                    
+
         return ((PreferredAlgorithms)p).getPreferences();
     }
-    
+
     public int[] getPreferredCompressionAlgorithms()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.PREFERRED_COMP_ALGS);
-        
+
         if (p == null)
         {
             return null;
         }
-                    
+
         return ((PreferredAlgorithms)p).getPreferences();
     }
-    
+
     public int getKeyFlags()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.KEY_FLAGS);
-        
+
         if (p == null)
         {
             return 0;
         }
-                    
+
         return ((KeyFlags)p).getFlags();
     }
-    
+
     public String getSignerUserID()
     {
         SignatureSubpacket    p = this.getSubpacket(SignatureSubpacketTags.SIGNER_USER_ID);
-        
+
         if (p == null)
         {
             return null;
         }
-                    
+
         return ((SignerUserID)p).getID();
     }
 
@@ -224,7 +250,7 @@ public class PGPSignatureSubpacketVector
     public int[] getCriticalTags()
     {
         int    count = 0;
-        
+
         for (int i = 0; i != packets.length; i++)
         {
             if (packets[i].isCritical())
@@ -232,11 +258,11 @@ public class PGPSignatureSubpacketVector
                 count++;
             }
         }
-        
+
         int[]    list = new int[count];
-        
+
         count = 0;
-        
+
         for (int i = 0; i != packets.length; i++)
         {
             if (packets[i].isCritical())
@@ -244,7 +270,7 @@ public class PGPSignatureSubpacketVector
                 list[count++] = packets[i].getType();
             }
         }
-        
+
         return list;
     }
 
@@ -262,14 +288,14 @@ public class PGPSignatureSubpacketVector
 
     /**
      * Return the number of packets this vector contains.
-     * 
+     *
      * @return size of the packet vector.
      */
     public int size()
     {
         return packets.length;
     }
-    
+
     SignatureSubpacket[] toSubpacketArray()
     {
         return packets;
