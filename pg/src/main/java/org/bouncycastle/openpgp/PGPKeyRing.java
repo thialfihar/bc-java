@@ -31,7 +31,7 @@ public abstract class PGPKeyRing
         return new BCPGInputStream(in);
     }
 
-    static TrustPacket readOptionalTrustPacket(
+    public static TrustPacket readOptionalTrustPacket(
         BCPGInputStream pIn)
         throws IOException
     {
@@ -40,7 +40,7 @@ public abstract class PGPKeyRing
             :   null;
     }
 
-    static List readSignaturesAndTrust(
+    public static List readSignaturesAndTrust(
         BCPGInputStream pIn)
         throws IOException
     {
@@ -65,7 +65,7 @@ public abstract class PGPKeyRing
         }
     }
 
-    static void readUserIDs(
+    public static void readUserIDs(
         BCPGInputStream pIn,
         List ids,
         List idTrusts,

@@ -46,7 +46,7 @@ public class PGPSecretKey
     SecretKeyPacket secret;
     PGPPublicKey    pub;
 
-    PGPSecretKey(
+    public PGPSecretKey(
         SecretKeyPacket secret,
         PGPPublicKey    pub)
     {
